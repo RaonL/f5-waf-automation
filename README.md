@@ -54,6 +54,8 @@ f5-waf policy upload out\dvwa-rapid-policy.json --apply
 
 [DVWA에 AWAF Rapid Deployment 적용 가이드](docs/dvwa-awaf-apply-guide.md)
 
+이미 `waf_pol` 같은 기존 정책이 `dvwa_vs`에 연결되어 있어도 새 정책을 만들 수 있습니다. 같은 Virtual Server에 정책 두 개를 동시에 활성 연결하는 것은 아니며, `dvwa_vs`의 Policy 값을 기존 정책에서 새 정책으로 교체합니다. 기존 정책은 삭제하지 말고 보존해두면 문제가 생겼을 때 바로 되돌릴 수 있습니다.
+
 요약하면 순서는 이렇습니다.
 
 1. `quickstart`로 DVWA용 Rapid Deployment 정책 JSON 생성

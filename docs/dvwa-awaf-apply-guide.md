@@ -98,6 +98,46 @@ Local Traffic > Virtual Servers > Virtual Server List > dvwa_vs
 
 정책이 Virtual Server에 붙지 않으면 트래픽이 AWAF를 지나가지 않으므로 학습과 로그가 쌓이지 않습니다.
 
+## 4-1. 기존 `waf_pol`이 이미 연결되어 있는 경우
+
+같은 Virtual Server에 AWAF 정책을 두 개 동시에 활성 연결할 수는 없습니다.
+
+지금처럼 `waf_pol`이 이미 `dvwa_vs`에 연결되어 있다면, 새 정책을 하나 더 만든 뒤 `dvwa_vs`의 Application Security Policy를 새 정책으로 교체합니다.
+
+기존 정책은 삭제하지 않아도 됩니다. Virtual Server에서 연결만 빠지면 더 이상 `dvwa_vs` 트래픽에는 적용되지 않습니다.
+
+권장 절차:
+
+1. 기존 상태 기록
+   - Policy: `waf_pol`
+   - Enforcement Mode: `Transparent`
+   - Virtual Server: `dvwa_vs`
+2. 새 정책 생성
+   - 예: `dvwa-rapid-policy-v2`
+3. 새 정책 업로드
+4. BIG-IP GUI에서 `dvwa_vs`로 이동
+5. `Security` 탭에서 Application Security Policy는 `Enabled` 유지
+6. Policy 값을 `waf_pol`에서 `dvwa-rapid-policy-v2`로 변경
+7. Logging Profile이 연결되어 있는지 확인
+8. `Update` 클릭
+9. Event Logs에서 새 정책 이름으로 로그가 쌓이는지 확인
+
+새 정책 생성 예시:
+
+```powershell
+f5-waf quickstart --name dvwa-rapid-policy-v2 --type web --mode transparent --learning-mode manual --signature-accuracy high --server-tech Apache --server-tech PHP --server-tech MySQL --deployment-scenario existing --virtual-server dvwa_vs --logging-profile waf_detect_only --checklist-output out\dvwa-v2-checklist.md --output out\dvwa-rapid-policy-v2.json
+```
+
+되돌리기가 필요하면 같은 화면에서 Policy 값을 다시 `waf_pol`로 바꾸면 됩니다.
+
+기존 정책을 완전히 비활성화하고 싶다면:
+
+```text
+Local Traffic > Virtual Servers > dvwa_vs > Security
+```
+
+위 화면에서 Application Security Policy를 `Disabled`로 바꾸면 해당 Virtual Server에서는 AWAF가 적용되지 않습니다. 다만 이 경우 새 정책도 적용되지 않으므로, 보통은 `Disabled`가 아니라 **정책 교체**를 사용합니다.
+
 ## 5. 정상 트래픽 확인
 
 브라우저에서 DVWA에 접속합니다.
