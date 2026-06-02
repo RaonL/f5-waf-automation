@@ -42,13 +42,20 @@ def build_easy_policy(
     xff_headers: list[str] | None = None,
     data_guard: bool = True,
     inspect_responses: bool = False,
+    learning_mode: str = "manual",
+    signature_accuracy: str = "high",
 ) -> dict[str, Any]:
     if app_type not in {"web", "api"}:
         raise ValueError("type must be web or api")
     if mode not in {"transparent", "blocking"}:
         raise ValueError("mode must be transparent or blocking")
+    if learning_mode not in {"manual", "automatic", "fully-automatic"}:
+        raise ValueError("learning mode must be manual, automatic, or fully-automatic")
+    if signature_accuracy not in {"high", "medium", "low"}:
+        raise ValueError("signature accuracy must be high, medium, or low")
 
     violations = API_VIOLATIONS if app_type == "api" else WEB_VIOLATIONS
+    builder_mode = "automatic" if learning_mode == "fully-automatic" else learning_mode
     technologies = server_technologies or []
     signatures = disabled_signature_ids or []
     geolocations = disallowed_geolocations or []
@@ -86,6 +93,8 @@ def build_easy_policy(
             "signature-settings": {
                 "signatureStaging": staging,
                 "placeSignaturesInStaging": staging,
+                "minimumAccuracyForAutoAddedSignatures": signature_accuracy,
+                "attackSignatureFalsePositiveMode": "detect-and-allow" if staging else "detect",
             },
             "server-technologies": [
                 {
@@ -125,6 +134,11 @@ def build_easy_policy(
             },
             "policy-builder-server-technologies": {
                 "enableServerTechnologiesDetection": True,
+            },
+            "policy-builder": {
+                "learningMode": builder_mode,
+                "fullyAutomatic": learning_mode == "fully-automatic",
+                "learnFromResponses": inspect_responses,
             },
             "general": {
                 "enforcementReadinessPeriod": 7,
@@ -179,6 +193,11 @@ def build_rollout_checklist(
     logging_profile: str = "waf_detect_only",
     deployment_scenario: str = "existing",
     inspect_responses: bool = False,
+    mode: str = "transparent",
+    staging: bool = True,
+    learning_mode: str = "manual",
+    signature_accuracy: str = "high",
+    log_scope: str = "violations",
 ) -> str:
     target = virtual_server or "<virtual-server-name>"
     scenario_text = {
@@ -187,17 +206,24 @@ def build_rollout_checklist(
         "unassigned": "Do not associate with Virtual Server",
     }[deployment_scenario]
     response_text = "Enabled" if inspect_responses else "Disabled"
+    staging_text = "Enabled" if staging else "Disabled"
+    lab_note = ""
+    if mode == "blocking" and not staging:
+        lab_note = "- Blocking + Signature Staging Disabled 구성은 차단 테스트가 빠르지만 운영 첫 적용에는 신중하게 사용한다.\n"
     return f"""# {policy_name} WAF 적용 체크리스트
 
 ## 1. 정책 생성
 
 - Rapid Deployment Policy 기반으로 정책을 생성한다.
 - Deployment Scenario: `{scenario_text}`
-- Enforcement Mode는 최초 적용 시 Transparent로 시작한다.
+- Enforcement Mode: `{mode}`
+- Learning Mode: `{learning_mode}`
+- Signature Accuracy: `{signature_accuracy}`
 - Application Language는 UTF-8로 둔다.
 - Enforcement Readiness Period는 기본 7일로 둔다.
-- Signature Staging이 켜져 있는지 확인한다.
+- Signature Staging: `{staging_text}`
 - Apply Signatures to Responses: `{response_text}`
+{lab_note}
 
 ## 2. Virtual Server 연결
 
@@ -211,7 +237,8 @@ def build_rollout_checklist(
 ## 3. Logging Profile
 
 - Application Security Logging Profile 이름: `{logging_profile}`
-- 탐지 초기에는 위반 요청과 정상 요청이 보이는지 확인한다.
+- Logging Scope: `{log_scope}`
+- 탐지 초기에는 로그가 남는지 확인한다. 문제 분석 기간에는 all requests, 운영 상시에는 violations only가 더 가볍다.
 - 운영 환경에서는 모든 요청/응답 로깅이 성능에 영향을 줄 수 있으므로 필요한 기간에만 사용한다.
 
 ## 4. 검증

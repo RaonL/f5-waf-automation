@@ -13,6 +13,7 @@ F5 BIG-IP ASM/AWAF에서 Rapid Deployment Policy를 쉽게 시작하기 위한 C
 - F5 Agility Lab: transparent rapid deployment policy, logging profile, log validation
 - TechClick Rapid Deployment setup: Rapid Deployment 생성 및 Signature Staging
 - LinkedIn Rapid Deployment ASP 요약: signature staging, generic signatures, wildcard 중심 학습, Data Guard
+- RAYKA AWAF 첫 보안 정책 생성: policy type, template, logging profile, application language, enforcement mode, learning mode, signature accuracy, signature staging, server technologies, VS 적용과 로그 확인
 
 ## 빠른 시작
 
@@ -40,6 +41,12 @@ f5-waf quickstart --name my-web-app --type web --mode transparent --server-tech 
 
 ```powershell
 f5-waf quickstart --name my-web-app --type web --mode transparent --server-tech Java --server-tech MySQL --virtual-server my_web_vs --logging-profile waf_detect_only --checklist-output out\my-web-app-checklist.md --output out\my-web-app-policy.json
+```
+
+Learning Mode와 Signature Accuracy까지 지정:
+
+```powershell
+f5-waf quickstart --name my-web-app --type web --mode transparent --learning-mode manual --signature-accuracy high --server-tech Apache --server-tech PHP --server-tech MySQL --output out\my-web-app-policy.json
 ```
 
 API 서비스 정책 생성:
@@ -81,6 +88,8 @@ f5-waf policy upload out\my-web-app-policy.json --apply
 | Enforcement Mode | 기본 `transparent` |
 | Enforcement Readiness Period | `7`일 |
 | Signature Staging | 켜짐 |
+| Learning Mode | 기본 `manual` |
+| Signature Accuracy | 기본 `high` |
 | Signature Set | `Generic Detection Signatures` |
 | Data Guard | 켜짐, 신용카드 번호 마스킹 |
 | File Type/URL/Parameter/Cookie Learning | 명시 엔티티 학습 `never`, wildcard 중심 |
@@ -93,6 +102,8 @@ F5 공식 12.1 문서 기준으로 Rapid Deployment는 HTTP compliance, mandator
 | --- | --- | --- |
 | Enforcement Mode | `transparent` | 처음에는 차단하지 않고 로그/학습 중심으로 운영 |
 | Signature Staging | 켜짐 | 신규/업데이트 시그니처가 바로 차단되지 않도록 관찰 기간 확보 |
+| Learning Mode | `manual` | 학습 제안을 사람이 검토하고 수락 |
+| Signature Accuracy | `high` | 첫 적용 시 오탐을 줄이는 쪽으로 시작 |
 | Alarm | 켜짐 | 위반 이벤트를 로그와 리포트에서 확인 |
 | Block | 꺼짐 | 탐지 단계에서는 사용자 요청을 막지 않음 |
 | Server Technologies | 애플리케이션에 맞게 지정 | Java, MySQL, IIS 같은 기술별 시그니처 적용 |
@@ -100,6 +111,14 @@ F5 공식 12.1 문서 기준으로 Rapid Deployment는 HTTP compliance, mandator
 | Logging Profile | 별도 적용 | WAF가 실제 요청을 보고 있는지 확인 |
 
 ## 추가 옵션
+
+랩에서 차단이 실제로 되는지 빠르게 확인:
+
+```powershell
+f5-waf quickstart --name dvwa-policy --type web --mode blocking --no-staging --signature-accuracy low --server-tech Apache --server-tech PHP --server-tech MySQL --output out\dvwa-blocking-policy.json
+```
+
+이 구성은 SQL Injection 같은 테스트 공격이 바로 차단되는지 확인하기 좋습니다. 다만 운영 첫 적용에는 `transparent + staging on + high accuracy`로 시작하는 것을 권장합니다.
 
 응답에도 공격 시그니처 검사 적용:
 
@@ -174,6 +193,9 @@ f5-waf quickstart --name my-web-app --type web --mode transparent --deployment-s
 | `--mode blocking` | 차단 모드 |
 | `--server-tech Java` | 서버 기술 지정, 여러 번 사용 가능 |
 | `--inspect-responses` | 응답에도 공격 시그니처 검사 적용 |
+| `--learning-mode manual` | 학습 모드. `manual`, `automatic`, `fully-automatic` |
+| `--signature-accuracy high` | 자동 추가 시그니처 최소 정확도. `high`, `medium`, `low` |
+| `--log-scope violations` | 체크리스트에 남길 로깅 범위 |
 | `--disable-signature-id 200101552` | 특정 공격 시그니처 비활성화 |
 | `--disallow-country "Country"` | Geo 차단 국가 추가 |
 | `--ip-intelligence` | IP Intelligence 카테고리를 alarm 중심으로 추가 |

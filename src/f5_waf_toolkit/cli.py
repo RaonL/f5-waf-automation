@@ -78,6 +78,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Apply attack signatures to responses as well as requests.",
     )
     quickstart.add_argument(
+        "--learning-mode",
+        choices=["manual", "automatic", "fully-automatic"],
+        default="manual",
+        help="Learning mode. Manual is safest for first rollout.",
+    )
+    quickstart.add_argument(
+        "--signature-accuracy",
+        choices=["high", "medium", "low"],
+        default="high",
+        help="Minimum accuracy for auto-added signatures. Low is stricter but can create more false positives.",
+    )
+    quickstart.add_argument(
+        "--log-scope",
+        choices=["violations", "all-requests", "all-requests-and-responses"],
+        default="violations",
+        help="Logging scope note for the generated checklist.",
+    )
+    quickstart.add_argument(
         "--deployment-scenario",
         choices=["existing", "new", "unassigned"],
         default="existing",
@@ -147,6 +165,8 @@ def cmd_quickstart(args: argparse.Namespace) -> int:
         xff_headers=args.xff_header,
         data_guard=not args.no_data_guard,
         inspect_responses=args.inspect_responses,
+        learning_mode=args.learning_mode,
+        signature_accuracy=args.signature_accuracy,
     )
     require_valid_policy(policy)
     write_json(args.output, policy)
@@ -158,6 +178,11 @@ def cmd_quickstart(args: argparse.Namespace) -> int:
             args.logging_profile,
             args.deployment_scenario,
             args.inspect_responses,
+            args.mode,
+            not args.no_staging,
+            args.learning_mode,
+            args.signature_accuracy,
+            args.log_scope,
         )
         with open(args.checklist_output, "w", encoding="utf-8") as handle:
             handle.write(checklist)

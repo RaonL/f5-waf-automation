@@ -31,6 +31,10 @@ class CliTests(unittest.TestCase):
                     "200101552",
                     "--ip-intelligence",
                     "--inspect-responses",
+                    "--learning-mode",
+                    "automatic",
+                    "--signature-accuracy",
+                    "medium",
                     "--checklist-output",
                     str(Path(directory) / "checklist.md"),
                 ]
@@ -43,6 +47,7 @@ class CliTests(unittest.TestCase):
             self.assertIn("200101552", text)
             self.assertIn("ip-intelligence", text)
             self.assertIn("responseCheck", text)
+            self.assertIn("minimumAccuracyForAutoAddedSignatures", text)
             self.assertTrue((Path(directory) / "checklist.md").exists())
 
 

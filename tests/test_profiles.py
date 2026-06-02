@@ -13,6 +13,8 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(policy["policy"]["policy-builder-filetype"]["learnExplicitFiletypes"], "never")
         self.assertTrue(policy["policy"]["data-guard"]["enabled"])
         self.assertFalse(policy["policy"]["filetypes"][0]["responseCheck"])
+        self.assertEqual(policy["policy"]["policy-builder"]["learningMode"], "manual")
+        self.assertEqual(policy["policy"]["signature-settings"]["minimumAccuracyForAutoAddedSignatures"], "high")
 
     def test_api_policy_adds_api_protection(self):
         policy = build_easy_policy("api", app_type="api", mode="blocking")
@@ -31,6 +33,8 @@ class ProfileTests(unittest.TestCase):
             trust_xff=True,
             xff_headers=["X-Forwarded-For"],
             inspect_responses=True,
+            learning_mode="fully-automatic",
+            signature_accuracy="low",
         )
 
         self.assertEqual(
@@ -54,14 +58,30 @@ class ProfileTests(unittest.TestCase):
         self.assertTrue(policy["policy"]["ip-intelligence"]["enabled"])
         self.assertTrue(policy["policy"]["general"]["trustXff"])
         self.assertTrue(policy["policy"]["filetypes"][0]["responseCheck"])
+        self.assertEqual(policy["policy"]["policy-builder"]["learningMode"], "automatic")
+        self.assertTrue(policy["policy"]["policy-builder"]["fullyAutomatic"])
+        self.assertEqual(policy["policy"]["signature-settings"]["minimumAccuracyForAutoAddedSignatures"], "low")
 
     def test_rollout_checklist_includes_operational_steps(self):
-        checklist = build_rollout_checklist("portal", "portal_vs", "waf_detect_only", "existing", True)
+        checklist = build_rollout_checklist(
+            "portal",
+            "portal_vs",
+            "waf_detect_only",
+            "existing",
+            True,
+            "blocking",
+            False,
+            "manual",
+            "low",
+            "all-requests",
+        )
 
         self.assertIn("portal_vs", checklist)
         self.assertIn("Logging Profile", checklist)
         self.assertIn("Traffic Learning", checklist)
         self.assertIn("Apply Signatures to Responses", checklist)
+        self.assertIn("Signature Accuracy", checklist)
+        self.assertIn("Blocking + Signature Staging Disabled", checklist)
 
 
 if __name__ == "__main__":
