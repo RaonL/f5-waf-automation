@@ -4,12 +4,13 @@ import argparse
 import json
 import sys
 
-from .client import F5Client
+from .client import F5ApiError, F5Client
 from .config import F5Config
 from .logs import parse_jsonl_to_csv
 from .policies import (
     PolicyValidationError,
     convert_asm_to_awaf,
+    extract_policy_payload,
     load_json,
     require_valid_policy,
     validate_policy,
@@ -266,14 +267,24 @@ def cmd_policy_upload(args: argparse.Namespace) -> int:
     data = load_json(args.policy_file)
     require_valid_policy(data)
     policy_name = data["policy"]["name"]
+    payload = extract_policy_payload(data)
 
     if not args.apply:
-        print(json.dumps({"dry_run": True, "policy": policy_name}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "dry_run": True,
+                    "policy": policy_name,
+                    "payload_root": "policy" if payload is not data else "document",
+                },
+                indent=2,
+            )
+        )
         print("No changes sent. Re-run with --apply to upload.")
         return 0
 
     config = F5Config.from_env()
-    result = F5Client(config).create_policy(data)
+    result = F5Client(config).create_policy(payload)
     print(json.dumps(result, indent=2))
     return 0
 
@@ -298,6 +309,16 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return args.func(args)
+    except F5ApiError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        if exc.body:
+            print("BIG-IP response:", file=sys.stderr)
+            try:
+                parsed = json.loads(exc.body)
+                print(json.dumps(parsed, indent=2), file=sys.stderr)
+            except json.JSONDecodeError:
+                print(exc.body, file=sys.stderr)
+        return 1
     except (OSError, RuntimeError, ValueError, PolicyValidationError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1

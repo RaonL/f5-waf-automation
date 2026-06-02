@@ -1,6 +1,6 @@
 import unittest
 
-from f5_waf_toolkit.policies import convert_asm_to_awaf, validate_policy
+from f5_waf_toolkit.policies import convert_asm_to_awaf, extract_policy_payload, validate_policy
 
 
 class PolicyTests(unittest.TestCase):
@@ -35,6 +35,16 @@ class PolicyTests(unittest.TestCase):
 
         self.assertEqual(converted["policy"]["name"], "modern")
         self.assertIs(converted["policy"]["blockingSettings"]["violations"][0]["block"], True)
+
+    def test_extract_policy_payload_unwraps_policy_document(self):
+        wrapped = {"policy": {"name": "demo"}}
+
+        self.assertEqual(extract_policy_payload(wrapped), {"name": "demo"})
+
+    def test_extract_policy_payload_keeps_unwrapped_document(self):
+        unwrapped = {"name": "demo"}
+
+        self.assertIs(extract_policy_payload(unwrapped), unwrapped)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,9 @@
 import unittest
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
+from f5_waf_toolkit.client import F5ApiError
 from f5_waf_toolkit.cli import main
 
 
@@ -68,6 +70,47 @@ class CliTests(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertIn("dvwa-rapid-policy-v2", policy.read_text(encoding="utf-8"))
             self.assertIn("192.168.137.211", checklist.read_text(encoding="utf-8"))
+
+    def test_policy_upload_apply_posts_unwrapped_payload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policy_file = Path(directory) / "policy.json"
+            policy_file.write_text(
+                '{"policy":{"name":"demo","enforcementMode":"transparent"}}',
+                encoding="utf-8",
+            )
+            with patch("f5_waf_toolkit.config.F5Config.require_credentials"), patch.dict(
+                "os.environ",
+                {"F5_HOST": "https://bigip.example.com", "F5_USERNAME": "admin", "F5_PASSWORD": "secret"},
+            ), patch("f5_waf_toolkit.cli.F5Client.create_policy") as create_policy:
+                create_policy.return_value = {"name": "demo"}
+
+                result = main(["policy", "upload", str(policy_file), "--apply"])
+
+            self.assertEqual(result, 0)
+            create_policy.assert_called_once_with({"name": "demo", "enforcementMode": "transparent"})
+
+    def test_policy_upload_prints_bigip_error_body(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policy_file = Path(directory) / "policy.json"
+            policy_file.write_text(
+                '{"policy":{"name":"demo","enforcementMode":"transparent"}}',
+                encoding="utf-8",
+            )
+            body = '{"code":400,"message":"bad policy","kind":":resterrorresponse"}'
+            with patch("f5_waf_toolkit.config.F5Config.require_credentials"), patch.dict(
+                "os.environ",
+                {"F5_HOST": "https://bigip.example.com", "F5_USERNAME": "admin", "F5_PASSWORD": "secret"},
+            ), patch("f5_waf_toolkit.cli.F5Client.create_policy") as create_policy, patch(
+                "sys.stderr"
+            ) as stderr:
+                create_policy.side_effect = F5ApiError(400, "400 Bad Request", body)
+
+                result = main(["policy", "upload", str(policy_file), "--apply"])
+
+            self.assertEqual(result, 1)
+            output = "".join(str(call.args[0]) for call in stderr.write.call_args_list if call.args)
+            self.assertIn("BIG-IP response:", output)
+            self.assertIn("bad policy", output)
 
 
 if __name__ == "__main__":

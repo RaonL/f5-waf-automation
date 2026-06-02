@@ -64,6 +64,13 @@ def require_valid_policy(data: dict[str, Any]) -> None:
         raise PolicyValidationError("; ".join(errors))
 
 
+def extract_policy_payload(data: dict[str, Any]) -> dict[str, Any]:
+    policy = data.get("policy")
+    if isinstance(policy, dict):
+        return policy
+    return data
+
+
 def convert_asm_to_awaf(data: dict[str, Any]) -> dict[str, Any]:
     asm_policy = data.get("asmPolicy", {})
     awaf_target = data.get("awafTarget", {})
