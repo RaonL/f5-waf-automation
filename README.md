@@ -1,21 +1,17 @@
-# F5 WAF 쉽게 설정하기
+# F5 AWAF Rapid Deployment 쉽게 적용하기
 
-F5 BIG-IP ASM/AWAF에서 Rapid Deployment Policy를 쉽게 시작하기 위한 CLI 도구입니다.
+이 저장소는 **F5 AWAF와 DVWA 서버가 이미 준비되어 있고, DVWA가 BIG-IP LTM Virtual Server 뒤에 붙어 있는 상태**에서 AWAF 정책을 쉽게 생성하고 적용하기 위한 도구입니다.
 
-목표는 복잡한 WAF JSON을 직접 처음부터 쓰는 것이 아니라, 몇 가지 옵션만으로 탐지 모드 정책 초안을 만들고, BIG-IP GUI에서 확인해야 할 항목까지 체크리스트로 남기는 것입니다.
+즉, 아래는 이미 끝났다고 가정합니다.
 
-## 기준 문서
+- DVWA 서버 구축 완료
+- BIG-IP Pool에 DVWA 서버 등록 완료
+- BIG-IP Virtual Server 생성 완료
+- 브라우저에서 Virtual Server 주소로 DVWA 접속 확인 완료
 
-이 저장소의 기본 흐름은 아래 문서를 기준으로 잡았습니다.
+이 저장소는 그 다음 단계인 **AWAF 정책 생성, Virtual Server에 연결, 로그 확인, 탐지 모드 운영, 차단 모드 전환**을 도와줍니다.
 
-- F5 공식 BIG-IP ASM 12.1 Getting Started: Using Rapid Deployment
-- F5 공식 BIG-IP ASM 13.0 Getting Started: Using Rapid Deployment to Create a Security Policy
-- F5 Agility Lab: transparent rapid deployment policy, logging profile, log validation
-- TechClick Rapid Deployment setup: Rapid Deployment 생성 및 Signature Staging
-- LinkedIn Rapid Deployment ASP 요약: signature staging, generic signatures, wildcard 중심 학습, Data Guard
-- RAYKA AWAF 첫 보안 정책 생성: policy type, template, logging profile, application language, enforcement mode, learning mode, signature accuracy, signature staging, server technologies, VS 적용과 로그 확인
-
-## 빠른 시작
+## 바로 쓰는 명령
 
 설치:
 
@@ -25,196 +21,84 @@ python -m venv .venv
 python -m pip install -e .
 ```
 
-웹 서비스 탐지 모드 정책 생성:
+DVWA용 탐지 모드 정책 생성:
 
 ```powershell
-f5-waf quickstart --name my-web-app --type web --mode transparent --output out\my-web-app-policy.json
-```
-
-서버 기술까지 지정:
-
-```powershell
-f5-waf quickstart --name my-web-app --type web --mode transparent --server-tech Java --server-tech MySQL --output out\my-web-app-policy.json
-```
-
-정책 JSON과 BIG-IP 적용 체크리스트를 같이 생성:
-
-```powershell
-f5-waf quickstart --name my-web-app --type web --mode transparent --server-tech Java --server-tech MySQL --virtual-server my_web_vs --logging-profile waf_detect_only --checklist-output out\my-web-app-checklist.md --output out\my-web-app-policy.json
-```
-
-Learning Mode와 Signature Accuracy까지 지정:
-
-```powershell
-f5-waf quickstart --name my-web-app --type web --mode transparent --learning-mode manual --signature-accuracy high --server-tech Apache --server-tech PHP --server-tech MySQL --output out\my-web-app-policy.json
-```
-
-API 서비스 정책 생성:
-
-```powershell
-f5-waf quickstart --name my-api --type api --mode transparent --output out\my-api-policy.json
+f5-waf quickstart --name dvwa-rapid-policy --type web --mode transparent --learning-mode manual --signature-accuracy high --server-tech Apache --server-tech PHP --server-tech MySQL --deployment-scenario existing --virtual-server dvwa_vs --logging-profile waf_detect_only --checklist-output out\dvwa-awaf-checklist.md --output out\dvwa-rapid-policy.json
 ```
 
 정책 검증:
 
 ```powershell
-f5-waf policy validate out\my-web-app-policy.json
+f5-waf policy validate out\dvwa-rapid-policy.json
 ```
 
 BIG-IP 업로드 dry-run:
 
 ```powershell
-f5-waf policy upload out\my-web-app-policy.json
+f5-waf policy upload out\dvwa-rapid-policy.json
 ```
 
-실제 적용:
+실제 업로드:
 
 ```powershell
-$env:F5_HOST="https://bigip.example.com"
-$env:F5_USERNAME="automation-user"
-$env:F5_PASSWORD="secret"
-f5-waf policy upload out\my-web-app-policy.json --apply
+$env:F5_HOST="https://<big-ip-mgmt-ip>"
+$env:F5_USERNAME="<username>"
+$env:F5_PASSWORD="<password>"
+f5-waf policy upload out\dvwa-rapid-policy.json --apply
 ```
 
-## Rapid Deployment 기본값
+## 실제 적용 순서
 
-`quickstart`는 Rapid Deployment 흐름에 맞춰 아래 값을 생성합니다.
+자세한 절차는 아래 문서를 보세요.
 
-| 항목 | 생성값 |
+[DVWA에 AWAF Rapid Deployment 적용 가이드](docs/dvwa-awaf-apply-guide.md)
+
+요약하면 순서는 이렇습니다.
+
+1. `quickstart`로 DVWA용 Rapid Deployment 정책 JSON 생성
+2. `policy validate`로 정책 검증
+3. BIG-IP에 정책 업로드
+4. BIG-IP GUI에서 DVWA Virtual Server에 Application Security Policy 연결
+5. Logging Profile 연결
+6. DVWA 정상 접속 테스트
+7. SQL Injection 같은 테스트 요청 발생
+8. Security Event Log와 Traffic Learning 확인
+9. 오탐 튜닝 후 Apply Policy
+10. 충분히 관찰한 뒤 Blocking 전환 검토
+
+## 탐지 모드 기본값
+
+처음 적용은 운영 영향을 줄이기 위해 아래 값을 기본으로 권장합니다.
+
+| 항목 | 권장값 |
 | --- | --- |
-| Policy Template | `POLICY_TEMPLATE_RAPID_DEPLOYMENT` |
-| Policy Type | `security` |
-| Application Language | `utf-8` |
-| Enforcement Mode | 기본 `transparent` |
-| Enforcement Readiness Period | `7`일 |
-| Signature Staging | 켜짐 |
-| Learning Mode | 기본 `manual` |
-| Signature Accuracy | 기본 `high` |
-| Signature Set | `Generic Detection Signatures` |
-| Data Guard | 켜짐, 신용카드 번호 마스킹 |
-| File Type/URL/Parameter/Cookie Learning | 명시 엔티티 학습 `never`, wildcard 중심 |
+| Policy Template | Rapid Deployment |
+| Enforcement Mode | `transparent` |
+| Learning Mode | `manual` |
+| Signature Accuracy | `high` |
+| Signature Staging | enabled |
+| Server Technologies | `Apache`, `PHP`, `MySQL` |
+| Data Guard | enabled |
+| Logging | violations 중심, 테스트 기간에는 all requests 가능 |
 
-F5 공식 12.1 문서 기준으로 Rapid Deployment는 HTTP compliance, mandatory HTTP headers, information leakage, illegal HTTP methods, response codes, cookie RFC compliance, attack signatures, evasion technique, disallowed geolocation, disallowed users/sessions/IPs, request length, disallowed file upload content, character conversion failure, modified ASM cookies 등을 기본 보안 검사로 포함합니다.
+## 차단 테스트용 정책
 
-## 탐지 모드에서 중요한 설정
-
-| 설정 | 추천값 | 이유 |
-| --- | --- | --- |
-| Enforcement Mode | `transparent` | 처음에는 차단하지 않고 로그/학습 중심으로 운영 |
-| Signature Staging | 켜짐 | 신규/업데이트 시그니처가 바로 차단되지 않도록 관찰 기간 확보 |
-| Learning Mode | `manual` | 학습 제안을 사람이 검토하고 수락 |
-| Signature Accuracy | `high` | 첫 적용 시 오탐을 줄이는 쪽으로 시작 |
-| Alarm | 켜짐 | 위반 이벤트를 로그와 리포트에서 확인 |
-| Block | 꺼짐 | 탐지 단계에서는 사용자 요청을 막지 않음 |
-| Server Technologies | 애플리케이션에 맞게 지정 | Java, MySQL, IIS 같은 기술별 시그니처 적용 |
-| Data Guard | 켜짐 | 민감 정보가 로그/화면에 노출되는 것을 줄임 |
-| Logging Profile | 별도 적용 | WAF가 실제 요청을 보고 있는지 확인 |
-
-## 추가 옵션
-
-랩에서 차단이 실제로 되는지 빠르게 확인:
+랩에서 SQL Injection이 실제로 차단되는지 바로 보고 싶다면 아래처럼 만들 수 있습니다.
 
 ```powershell
-f5-waf quickstart --name dvwa-policy --type web --mode blocking --no-staging --signature-accuracy low --server-tech Apache --server-tech PHP --server-tech MySQL --output out\dvwa-blocking-policy.json
+f5-waf quickstart --name dvwa-blocking-policy --type web --mode blocking --no-staging --signature-accuracy low --server-tech Apache --server-tech PHP --server-tech MySQL --output out\dvwa-blocking-policy.json
 ```
 
-이 구성은 SQL Injection 같은 테스트 공격이 바로 차단되는지 확인하기 좋습니다. 다만 운영 첫 적용에는 `transparent + staging on + high accuracy`로 시작하는 것을 권장합니다.
+주의: 이 설정은 테스트/랩 검증용입니다. 실제 서비스 첫 적용은 `transparent + staging on + high accuracy`를 권장합니다.
 
-응답에도 공격 시그니처 검사 적용:
+## 참고 문서
 
-```powershell
-f5-waf quickstart --name my-web-app --type web --mode transparent --inspect-responses --output out\my-web-app-policy.json
-```
-
-Geo 차단 국가 추가:
-
-```powershell
-f5-waf quickstart --name my-web-app --type web --mode transparent --disallow-country "American Samoa" --output out\my-web-app-policy.json
-```
-
-IP Intelligence를 alarm 중심으로 추가:
-
-```powershell
-f5-waf quickstart --name my-web-app --type web --mode transparent --ip-intelligence --output out\my-web-app-policy.json
-```
-
-신뢰 가능한 프록시 뒤에서 X-Forwarded-For 사용:
-
-```powershell
-f5-waf quickstart --name my-web-app --type web --mode transparent --trust-xff --xff-header X-Forwarded-For --output out\my-web-app-policy.json
-```
-
-`--trust-xff`는 BIG-IP 앞단 프록시가 신뢰 가능한 경우에만 사용하세요. 클라이언트가 XFF 헤더를 직접 조작할 수 있는 구조에서는 켜면 안 됩니다.
-
-## BIG-IP GUI 체크리스트에서 확인할 것
-
-공식 12.1 문서 기준으로 Rapid Deployment 생성 시 Deployment Scenario를 고르게 됩니다.
-
-- Existing Virtual Server: 기존 VS에 정책 연결
-- New Virtual Server: 새 VS와 pool을 같이 생성
-- Do not associate with Virtual Server: 정책만 만들고 나중에 VS 연결
-
-기존 Virtual Server를 사용할 때는 HTTP profile이 있어야 하며, local traffic policy가 이미 연결되어 있으면 먼저 구성을 확인해야 합니다. 정책을 VS에 연결하지 않으면 트래픽이 ASM을 지나가지 않으므로 학습이 시작되지 않습니다.
-
-체크리스트 생성:
-
-```powershell
-f5-waf quickstart --name my-web-app --type web --mode transparent --deployment-scenario existing --virtual-server my_web_vs --logging-profile waf_detect_only --checklist-output out\my-web-app-checklist.md --output out\my-web-app-policy.json
-```
-
-## 운영 순서
-
-1. `transparent` 모드로 정책 생성
-2. 백엔드 기술을 알면 `--server-tech`로 지정
-3. 필요 시 `--inspect-responses`, `--ip-intelligence`, `--disallow-country` 추가
-4. BIG-IP에 적용
-5. Logging Profile을 적용하고 Event Logs를 확인
-6. Traffic Learning 제안을 검토
-7. 오탐이 반복되는 항목을 튜닝하고 Apply Policy
-8. 최소 7일 이상 관찰 후 `blocking` 전환 검토
-
-## 명령어 요약
-
-| 명령 | 설명 |
-| --- | --- |
-| `f5-waf quickstart` | 쉬운 옵션으로 WAF 정책 초안 생성 |
-| `f5-waf policy validate` | 정책 JSON 검증 |
-| `f5-waf policy upload` | 정책 업로드, 기본값은 dry-run |
-| `f5-waf logs parse` | WAF JSONL 로그를 CSV로 변환 |
-| `f5-waf asm convert` | 단순 ASM 정책 조각을 AWAF 정책 초안으로 변환 |
-
-`quickstart` 주요 옵션:
-
-| 옵션 | 설명 |
-| --- | --- |
-| `--type web` | 일반 웹 애플리케이션 |
-| `--type api` | JSON API 중심 애플리케이션 |
-| `--mode transparent` | 탐지 모드 |
-| `--mode blocking` | 차단 모드 |
-| `--server-tech Java` | 서버 기술 지정, 여러 번 사용 가능 |
-| `--inspect-responses` | 응답에도 공격 시그니처 검사 적용 |
-| `--learning-mode manual` | 학습 모드. `manual`, `automatic`, `fully-automatic` |
-| `--signature-accuracy high` | 자동 추가 시그니처 최소 정확도. `high`, `medium`, `low` |
-| `--log-scope violations` | 체크리스트에 남길 로깅 범위 |
-| `--disable-signature-id 200101552` | 특정 공격 시그니처 비활성화 |
-| `--disallow-country "Country"` | Geo 차단 국가 추가 |
-| `--ip-intelligence` | IP Intelligence 카테고리를 alarm 중심으로 추가 |
-| `--trust-xff` | 신뢰 가능한 프록시 환경에서 XFF 신뢰 |
-| `--deployment-scenario existing` | 체크리스트용 배포 시나리오 |
-| `--checklist-output file.md` | VS 연결, 로깅, Traffic Learning 체크리스트 생성 |
-| `--no-staging` | 시그니처 staging 비활성화, 최초 적용에는 비추천 |
-
-## 환경변수
-
-실제 업로드할 때만 필요합니다. 실제 계정 정보는 절대 커밋하지 마세요.
-
-| 변수 | 설명 |
-| --- | --- |
-| `F5_HOST` | BIG-IP 주소 |
-| `F5_USERNAME` | BIG-IP 사용자 이름 |
-| `F5_PASSWORD` | BIG-IP 비밀번호 |
-| `F5_VERIFY_TLS` | TLS 인증서 검증 여부, 기본값 `true` |
-| `F5_TIMEOUT` | 요청 제한 시간, 기본값 `30`초 |
+- F5 공식 BIG-IP ASM 12.1 Getting Started: Rapid Deployment
+- F5 공식 BIG-IP ASM 13.0 Getting Started: Rapid Deployment
+- F5 Agility Lab WAF
+- RAYKA AWAF 첫 보안 정책 생성
+- TechClick Rapid Deployment setup
 
 ## 테스트
 
