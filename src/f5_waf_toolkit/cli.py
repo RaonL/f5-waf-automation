@@ -15,7 +15,7 @@ from .policies import (
     validate_policy,
     write_json,
 )
-from .profiles import build_easy_policy
+from .profiles import build_easy_policy, build_rollout_checklist
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -44,6 +44,47 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=[],
         help="Disable a specific attack signature ID in the generated policy. Can be used multiple times.",
+    )
+    quickstart.add_argument(
+        "--disallow-country",
+        action="append",
+        default=[],
+        help="Add a disallowed geolocation country name. Can be used multiple times.",
+    )
+    quickstart.add_argument(
+        "--ip-intelligence",
+        action="store_true",
+        help="Enable IP Intelligence categories in alarm mode for transparent policies.",
+    )
+    quickstart.add_argument(
+        "--trust-xff",
+        action="store_true",
+        help="Trust X-Forwarded-For. Use only when BIG-IP is behind a trusted proxy.",
+    )
+    quickstart.add_argument(
+        "--xff-header",
+        action="append",
+        default=[],
+        help="Custom trusted XFF header. Can be used multiple times.",
+    )
+    quickstart.add_argument(
+        "--no-data-guard",
+        action="store_true",
+        help="Disable Data Guard in the generated policy.",
+    )
+    quickstart.add_argument(
+        "--virtual-server",
+        default="",
+        help="Virtual Server name for the generated rollout checklist.",
+    )
+    quickstart.add_argument(
+        "--logging-profile",
+        default="waf_detect_only",
+        help="Logging profile name for the generated rollout checklist.",
+    )
+    quickstart.add_argument(
+        "--checklist-output",
+        help="Optional Markdown checklist for BIG-IP GUI steps such as VS assignment and logging profile.",
     )
     quickstart.add_argument(
         "--no-staging",
@@ -89,10 +130,20 @@ def cmd_quickstart(args: argparse.Namespace) -> int:
         staging=not args.no_staging,
         server_technologies=args.server_tech,
         disabled_signature_ids=args.disable_signature_id,
+        disallowed_geolocations=args.disallow_country,
+        ip_intelligence=args.ip_intelligence,
+        trust_xff=args.trust_xff,
+        xff_headers=args.xff_header,
+        data_guard=not args.no_data_guard,
     )
     require_valid_policy(policy)
     write_json(args.output, policy)
     print(f"Wrote easy WAF policy: {args.output}")
+    if args.checklist_output:
+        checklist = build_rollout_checklist(args.name, args.virtual_server, args.logging_profile)
+        with open(args.checklist_output, "w", encoding="utf-8") as handle:
+            handle.write(checklist)
+        print(f"Wrote rollout checklist: {args.checklist_output}")
     print("Next: review it, then run policy upload without --apply for a dry-run.")
     return 0
 

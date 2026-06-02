@@ -43,7 +43,7 @@ def validate_policy(data: dict[str, Any]) -> list[str]:
     if template and not isinstance(template, dict):
         errors.append("policy.template must be an object when provided")
 
-    blocking = policy.get("blockingSettings", {})
+    blocking = policy.get("blocking-settings", policy.get("blockingSettings", {}))
     violations = blocking.get("violations", []) if isinstance(blocking, dict) else []
     if violations and not isinstance(violations, list):
         errors.append("policy.blockingSettings.violations must be a list")
