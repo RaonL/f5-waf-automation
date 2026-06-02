@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from .config import F5Config
+from .logging_profiles import build_tmsh_create_logging_profile_command
 
 
 class F5ApiError(RuntimeError):
@@ -49,11 +50,12 @@ class F5Client:
             raise RuntimeError("Install project dependencies before using --apply: python -m pip install -e .") from exc
 
         self.config.require_credentials()
-        url = f"{self.config.host}/mgmt/tm/security/log/profile"
+        url = f"{self.config.host}/mgmt/tm/util/bash"
+        tmsh_command = build_tmsh_create_logging_profile_command(profile)
         response = requests.post(
             url,
             auth=(self.config.username, self.config.password),
-            json=profile,
+            json={"command": "run", "utilCmdArgs": f"-c {shlex_quote(tmsh_command)}"},
             timeout=self.config.timeout,
             verify=self.config.verify_tls,
         )
@@ -67,3 +69,9 @@ class F5Client:
         if not response.content:
             return {"status": response.status_code}
         return response.json()
+
+
+def shlex_quote(value: str) -> str:
+    import shlex
+
+    return shlex.quote(value)

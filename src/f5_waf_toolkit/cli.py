@@ -7,7 +7,7 @@ import sys
 from .client import F5ApiError, F5Client
 from .config import F5Config
 from .logs import parse_jsonl_to_csv
-from .logging_profiles import build_application_security_logging_profile
+from .logging_profiles import build_application_security_logging_profile, build_tmsh_create_logging_profile_command
 from .policies import (
     PolicyValidationError,
     convert_asm_to_awaf,
@@ -339,7 +339,17 @@ def cmd_logging_profile_create(args: argparse.Namespace) -> int:
         response_logging=args.response_logging,
     )
     if not args.apply:
-        print(json.dumps({"dry_run": True, "profile": args.name, "payload": profile}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "dry_run": True,
+                    "profile": args.name,
+                    "payload": profile,
+                    "tmsh_command": build_tmsh_create_logging_profile_command(profile),
+                },
+                indent=2,
+            )
+        )
         print("No changes sent. Re-run with --apply to create the logging profile.")
         return 0
 
