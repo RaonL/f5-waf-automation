@@ -28,6 +28,18 @@ IP_INTELLIGENCE_CATEGORIES = [
     "Windows Exploits",
 ]
 
+DVWA_LAB = {
+    "f5_mgmt_ip": "192.168.137.125",
+    "topology": "one-arm",
+    "server_ip": "192.168.137.113",
+    "virtual_server": "dvwa_vs",
+    "vip": "192.168.137.211",
+    "vip_port": 80,
+    "policy_name": "dvwa-rapid-policy-v2",
+    "logging_profile": "waf_detect_only",
+    "server_technologies": ["Apache", "PHP", "MySQL"],
+}
+
 
 def build_easy_policy(
     name: str,
@@ -198,6 +210,7 @@ def build_rollout_checklist(
     learning_mode: str = "manual",
     signature_accuracy: str = "high",
     log_scope: str = "violations",
+    environment: dict[str, Any] | None = None,
 ) -> str:
     target = virtual_server or "<virtual-server-name>"
     scenario_text = {
@@ -210,8 +223,23 @@ def build_rollout_checklist(
     lab_note = ""
     if mode == "blocking" and not staging:
         lab_note = "- Blocking + Signature Staging Disabled 구성은 차단 테스트가 빠르지만 운영 첫 적용에는 신중하게 사용한다.\n"
+    environment_block = ""
+    if environment:
+        environment_block = f"""## 0. 고정 랩 환경
+
+| 항목 | 값 |
+| --- | --- |
+| F5 BIG-IP 관리 IP | `{environment.get("f5_mgmt_ip", "")}` |
+| 구성 방식 | `{environment.get("topology", "")}` |
+| DVWA Real Server IP | `{environment.get("server_ip", "")}` |
+| Virtual Server | `{environment.get("virtual_server", "")}` |
+| VIP | `{environment.get("vip", "")}:{environment.get("vip_port", "")}` |
+| Server Technologies | `{", ".join(environment.get("server_technologies", []))}` |
+
+"""
     return f"""# {policy_name} WAF 적용 체크리스트
 
+{environment_block}
 ## 1. 정책 생성
 
 - Rapid Deployment Policy 기반으로 정책을 생성한다.
@@ -254,3 +282,21 @@ def build_rollout_checklist(
 - 오탐이 충분히 줄어든 뒤 Blocking 모드 정책으로 전환한다.
 - 차단 전환 후에도 Support ID 기준으로 로그를 모니터링한다.
 """
+
+
+def build_dvwa_lab_policy(
+    name: str = DVWA_LAB["policy_name"],
+    mode: str = "transparent",
+    staging: bool = True,
+    learning_mode: str = "manual",
+    signature_accuracy: str = "high",
+) -> dict[str, Any]:
+    return build_easy_policy(
+        name=name,
+        app_type="web",
+        mode=mode,
+        staging=staging,
+        server_technologies=list(DVWA_LAB["server_technologies"]),
+        learning_mode=learning_mode,
+        signature_accuracy=signature_accuracy,
+    )

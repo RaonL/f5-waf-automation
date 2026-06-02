@@ -1,6 +1,6 @@
 import unittest
 
-from f5_waf_toolkit.profiles import build_easy_policy, build_rollout_checklist
+from f5_waf_toolkit.profiles import DVWA_LAB, build_dvwa_lab_policy, build_easy_policy, build_rollout_checklist
 
 
 class ProfileTests(unittest.TestCase):
@@ -82,6 +82,20 @@ class ProfileTests(unittest.TestCase):
         self.assertIn("Apply Signatures to Responses", checklist)
         self.assertIn("Signature Accuracy", checklist)
         self.assertIn("Blocking + Signature Staging Disabled", checklist)
+
+    def test_dvwa_lab_policy_uses_fixed_environment_defaults(self):
+        policy = build_dvwa_lab_policy()
+
+        self.assertEqual(policy["policy"]["name"], DVWA_LAB["policy_name"])
+        self.assertEqual(policy["policy"]["enforcementMode"], "transparent")
+        self.assertEqual(
+            policy["policy"]["server-technologies"],
+            [
+                {"serverTechnologyName": "Apache"},
+                {"serverTechnologyName": "PHP"},
+                {"serverTechnologyName": "MySQL"},
+            ],
+        )
 
 
 if __name__ == "__main__":

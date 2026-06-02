@@ -11,6 +11,20 @@
 
 이 저장소는 그 다음 단계인 **AWAF 정책 생성, Virtual Server에 연결, 로그 확인, 탐지 모드 운영, 차단 모드 전환**을 도와줍니다.
 
+## 고정 랩 환경
+
+이 저장소의 기본 예시는 아래 환경을 기준으로 합니다.
+
+| 항목 | 값 |
+| --- | --- |
+| F5 BIG-IP 관리 IP | `192.168.137.125` |
+| 구성 방식 | One-arm |
+| DVWA Real Server IP | `192.168.137.113` |
+| Virtual Server | `dvwa_vs` |
+| VIP | `192.168.137.211:80` |
+| 기존 WAF Policy | `waf_pol` |
+| 새로 만들 WAF Policy | `dvwa-rapid-policy-v2` |
+
 ## 바로 쓰는 명령
 
 설치:
@@ -24,19 +38,32 @@ python -m pip install -e .
 DVWA용 탐지 모드 정책 생성:
 
 ```powershell
-f5-waf quickstart --name dvwa-rapid-policy --type web --mode transparent --learning-mode manual --signature-accuracy high --server-tech Apache --server-tech PHP --server-tech MySQL --deployment-scenario existing --virtual-server dvwa_vs --logging-profile waf_detect_only --checklist-output out\dvwa-awaf-checklist.md --output out\dvwa-rapid-policy.json
+f5-waf lab dvwa
+```
+
+위 명령은 고정 랩 환경 기준으로 아래 파일을 생성합니다.
+
+| 파일 | 용도 |
+| --- | --- |
+| `out/dvwa-rapid-policy-v2.json` | 새 AWAF 정책 |
+| `out/dvwa-awaf-checklist.md` | `dvwa_vs` 적용 체크리스트 |
+
+같은 내용을 직접 옵션으로 쓰면 아래와 같습니다.
+
+```powershell
+f5-waf quickstart --name dvwa-rapid-policy-v2 --type web --mode transparent --learning-mode manual --signature-accuracy high --server-tech Apache --server-tech PHP --server-tech MySQL --deployment-scenario existing --virtual-server dvwa_vs --logging-profile waf_detect_only --checklist-output out\dvwa-awaf-checklist.md --output out\dvwa-rapid-policy-v2.json
 ```
 
 정책 검증:
 
 ```powershell
-f5-waf policy validate out\dvwa-rapid-policy.json
+f5-waf policy validate out\dvwa-rapid-policy-v2.json
 ```
 
 BIG-IP 업로드 dry-run:
 
 ```powershell
-f5-waf policy upload out\dvwa-rapid-policy.json
+f5-waf policy upload out\dvwa-rapid-policy-v2.json
 ```
 
 실제 업로드:
@@ -45,7 +72,13 @@ f5-waf policy upload out\dvwa-rapid-policy.json
 $env:F5_HOST="https://<big-ip-mgmt-ip>"
 $env:F5_USERNAME="<username>"
 $env:F5_PASSWORD="<password>"
-f5-waf policy upload out\dvwa-rapid-policy.json --apply
+f5-waf policy upload out\dvwa-rapid-policy-v2.json --apply
+```
+
+네 환경에서는:
+
+```powershell
+$env:F5_HOST="https://192.168.137.125"
 ```
 
 ## 실제 적용 순서
@@ -101,6 +134,7 @@ f5-waf quickstart --name dvwa-blocking-policy --type web --mode blocking --no-st
 - F5 Agility Lab WAF
 - RAYKA AWAF 첫 보안 정책 생성
 - TechClick Rapid Deployment setup
+- 일본 벤더 AWAF v17.1 교육자료
 
 ## 테스트
 

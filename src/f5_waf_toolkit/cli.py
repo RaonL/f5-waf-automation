@@ -15,7 +15,7 @@ from .policies import (
     validate_policy,
     write_json,
 )
-from .profiles import build_easy_policy, build_rollout_checklist
+from .profiles import DVWA_LAB, build_dvwa_lab_policy, build_easy_policy, build_rollout_checklist
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -122,6 +122,31 @@ def build_parser() -> argparse.ArgumentParser:
     )
     quickstart.set_defaults(func=cmd_quickstart)
 
+    lab = subcommands.add_parser("lab", help="Use built-in lab presets.")
+    lab_commands = lab.add_subparsers(dest="lab_command", required=True)
+    dvwa = lab_commands.add_parser("dvwa", help="Create policy and checklist for the fixed DVWA one-arm lab.")
+    dvwa.add_argument("--name", default=DVWA_LAB["policy_name"], help="Policy name.")
+    dvwa.add_argument(
+        "--mode",
+        choices=["transparent", "blocking"],
+        default="transparent",
+        help="Use transparent for first rollout, blocking for enforcement tests.",
+    )
+    dvwa.add_argument(
+        "--no-staging",
+        action="store_true",
+        help="Disable signature staging. Use only for lab blocking tests.",
+    )
+    dvwa.add_argument(
+        "--signature-accuracy",
+        choices=["high", "medium", "low"],
+        default="high",
+        help="Minimum accuracy for auto-added signatures.",
+    )
+    dvwa.add_argument("--output", default="out/dvwa-rapid-policy-v2.json", help="Output policy JSON file.")
+    dvwa.add_argument("--checklist-output", default="out/dvwa-awaf-checklist.md", help="Output checklist file.")
+    dvwa.set_defaults(func=cmd_lab_dvwa)
+
     policy = subcommands.add_parser("policy")
     policy_commands = policy.add_subparsers(dest="policy_command", required=True)
 
@@ -188,6 +213,41 @@ def cmd_quickstart(args: argparse.Namespace) -> int:
             handle.write(checklist)
         print(f"Wrote rollout checklist: {args.checklist_output}")
     print("Next: review it, then run policy upload without --apply for a dry-run.")
+    return 0
+
+
+def cmd_lab_dvwa(args: argparse.Namespace) -> int:
+    staging = not args.no_staging
+    policy = build_dvwa_lab_policy(
+        name=args.name,
+        mode=args.mode,
+        staging=staging,
+        signature_accuracy=args.signature_accuracy,
+    )
+    require_valid_policy(policy)
+    write_json(args.output, policy)
+    checklist = build_rollout_checklist(
+        args.name,
+        DVWA_LAB["virtual_server"],
+        DVWA_LAB["logging_profile"],
+        "existing",
+        False,
+        args.mode,
+        staging,
+        "manual",
+        args.signature_accuracy,
+        "violations",
+        DVWA_LAB,
+    )
+    with open(args.checklist_output, "w", encoding="utf-8") as handle:
+        handle.write(checklist)
+    print(f"Wrote DVWA lab policy: {args.output}")
+    print(f"Wrote DVWA lab checklist: {args.checklist_output}")
+    print(
+        f"Target: F5 {DVWA_LAB['f5_mgmt_ip']}, "
+        f"VS {DVWA_LAB['virtual_server']} {DVWA_LAB['vip']}:{DVWA_LAB['vip_port']}, "
+        f"server {DVWA_LAB['server_ip']}"
+    )
     return 0
 
 

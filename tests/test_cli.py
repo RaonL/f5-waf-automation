@@ -50,6 +50,25 @@ class CliTests(unittest.TestCase):
             self.assertIn("minimumAccuracyForAutoAddedSignatures", text)
             self.assertTrue((Path(directory) / "checklist.md").exists())
 
+    def test_lab_dvwa_writes_fixed_environment_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / "policy.json"
+            checklist = Path(directory) / "checklist.md"
+            result = main(
+                [
+                    "lab",
+                    "dvwa",
+                    "--output",
+                    str(policy),
+                    "--checklist-output",
+                    str(checklist),
+                ]
+            )
+
+            self.assertEqual(result, 0)
+            self.assertIn("dvwa-rapid-policy-v2", policy.read_text(encoding="utf-8"))
+            self.assertIn("192.168.137.211", checklist.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()
