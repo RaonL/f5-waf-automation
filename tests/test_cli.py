@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+from pathlib import Path
 
 from f5_waf_toolkit.cli import main
 
@@ -8,6 +10,26 @@ class CliTests(unittest.TestCase):
         result = main(["policy", "validate", "examples/policies/baseline-awaf-policy.json"])
 
         self.assertEqual(result, 0)
+
+    def test_quickstart_writes_policy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "policy.json"
+            result = main(
+                [
+                    "quickstart",
+                    "--name",
+                    "easy-app",
+                    "--type",
+                    "web",
+                    "--mode",
+                    "transparent",
+                    "--output",
+                    str(output),
+                ]
+            )
+
+            self.assertEqual(result, 0)
+            self.assertIn("easy-app", output.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

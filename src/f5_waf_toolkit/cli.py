@@ -15,11 +15,29 @@ from .policies import (
     validate_policy,
     write_json,
 )
+from .profiles import build_easy_policy
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="f5-waf")
     subcommands = parser.add_subparsers(dest="command", required=True)
+
+    quickstart = subcommands.add_parser("quickstart", help="Create a simple WAF policy from a few options.")
+    quickstart.add_argument("--name", required=True, help="Policy name, usually the application name.")
+    quickstart.add_argument("--type", choices=["web", "api"], default="web", help="Application type.")
+    quickstart.add_argument(
+        "--mode",
+        choices=["transparent", "blocking"],
+        default="transparent",
+        help="Start with transparent for monitoring, blocking for enforcement.",
+    )
+    quickstart.add_argument("--output", required=True, help="Output policy JSON file.")
+    quickstart.add_argument(
+        "--no-staging",
+        action="store_true",
+        help="Disable signature staging. Keep staging enabled for first rollout.",
+    )
+    quickstart.set_defaults(func=cmd_quickstart)
 
     policy = subcommands.add_parser("policy")
     policy_commands = policy.add_subparsers(dest="policy_command", required=True)
@@ -48,6 +66,20 @@ def build_parser() -> argparse.ArgumentParser:
     parse.set_defaults(func=cmd_logs_parse)
 
     return parser
+
+
+def cmd_quickstart(args: argparse.Namespace) -> int:
+    policy = build_easy_policy(
+        name=args.name,
+        app_type=args.type,
+        mode=args.mode,
+        staging=not args.no_staging,
+    )
+    require_valid_policy(policy)
+    write_json(args.output, policy)
+    print(f"Wrote easy WAF policy: {args.output}")
+    print("Next: review it, then run policy upload without --apply for a dry-run.")
+    return 0
 
 
 def cmd_policy_validate(args: argparse.Namespace) -> int:
