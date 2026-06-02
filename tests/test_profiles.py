@@ -12,6 +12,7 @@ class ProfileTests(unittest.TestCase):
         self.assertFalse(policy["policy"]["blocking-settings"]["violations"][0]["block"])
         self.assertEqual(policy["policy"]["policy-builder-filetype"]["learnExplicitFiletypes"], "never")
         self.assertTrue(policy["policy"]["data-guard"]["enabled"])
+        self.assertFalse(policy["policy"]["filetypes"][0]["responseCheck"])
 
     def test_api_policy_adds_api_protection(self):
         policy = build_easy_policy("api", app_type="api", mode="blocking")
@@ -29,6 +30,7 @@ class ProfileTests(unittest.TestCase):
             ip_intelligence=True,
             trust_xff=True,
             xff_headers=["X-Forwarded-For"],
+            inspect_responses=True,
         )
 
         self.assertEqual(
@@ -51,13 +53,15 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(policy["policy"]["disallowed-geolocations"], [{"countryName": "American Samoa"}])
         self.assertTrue(policy["policy"]["ip-intelligence"]["enabled"])
         self.assertTrue(policy["policy"]["general"]["trustXff"])
+        self.assertTrue(policy["policy"]["filetypes"][0]["responseCheck"])
 
     def test_rollout_checklist_includes_operational_steps(self):
-        checklist = build_rollout_checklist("portal", "portal_vs", "waf_detect_only")
+        checklist = build_rollout_checklist("portal", "portal_vs", "waf_detect_only", "existing", True)
 
         self.assertIn("portal_vs", checklist)
         self.assertIn("Logging Profile", checklist)
         self.assertIn("Traffic Learning", checklist)
+        self.assertIn("Apply Signatures to Responses", checklist)
 
 
 if __name__ == "__main__":

@@ -30,6 +30,7 @@ class CliTests(unittest.TestCase):
                     "--disable-signature-id",
                     "200101552",
                     "--ip-intelligence",
+                    "--inspect-responses",
                     "--checklist-output",
                     str(Path(directory) / "checklist.md"),
                 ]
@@ -41,6 +42,7 @@ class CliTests(unittest.TestCase):
             self.assertIn("Java", text)
             self.assertIn("200101552", text)
             self.assertIn("ip-intelligence", text)
+            self.assertIn("responseCheck", text)
             self.assertTrue((Path(directory) / "checklist.md").exists())
 
 

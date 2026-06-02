@@ -73,6 +73,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Disable Data Guard in the generated policy.",
     )
     quickstart.add_argument(
+        "--inspect-responses",
+        action="store_true",
+        help="Apply attack signatures to responses as well as requests.",
+    )
+    quickstart.add_argument(
+        "--deployment-scenario",
+        choices=["existing", "new", "unassigned"],
+        default="existing",
+        help="Deployment scenario for the generated checklist.",
+    )
+    quickstart.add_argument(
         "--virtual-server",
         default="",
         help="Virtual Server name for the generated rollout checklist.",
@@ -135,12 +146,19 @@ def cmd_quickstart(args: argparse.Namespace) -> int:
         trust_xff=args.trust_xff,
         xff_headers=args.xff_header,
         data_guard=not args.no_data_guard,
+        inspect_responses=args.inspect_responses,
     )
     require_valid_policy(policy)
     write_json(args.output, policy)
     print(f"Wrote easy WAF policy: {args.output}")
     if args.checklist_output:
-        checklist = build_rollout_checklist(args.name, args.virtual_server, args.logging_profile)
+        checklist = build_rollout_checklist(
+            args.name,
+            args.virtual_server,
+            args.logging_profile,
+            args.deployment_scenario,
+            args.inspect_responses,
+        )
         with open(args.checklist_output, "w", encoding="utf-8") as handle:
             handle.write(checklist)
         print(f"Wrote rollout checklist: {args.checklist_output}")

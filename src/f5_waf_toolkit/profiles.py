@@ -41,6 +41,7 @@ def build_easy_policy(
     trust_xff: bool = False,
     xff_headers: list[str] | None = None,
     data_guard: bool = True,
+    inspect_responses: bool = False,
 ) -> dict[str, Any]:
     if app_type not in {"web", "api"}:
         raise ValueError("type must be web or api")
@@ -99,6 +100,15 @@ def build_easy_policy(
                     "performStaging": staging,
                 }
                 for signature_id in signatures
+            ],
+            "filetypes": [
+                {
+                    "name": "*",
+                    "type": "wildcard",
+                    "allowed": True,
+                    "performStaging": staging,
+                    "responseCheck": inspect_responses,
+                }
             ],
             "policy-builder-filetype": {
                 "learnExplicitFiletypes": "never",
@@ -163,20 +173,38 @@ def build_easy_policy(
     return policy
 
 
-def build_rollout_checklist(policy_name: str, virtual_server: str = "", logging_profile: str = "waf_detect_only") -> str:
+def build_rollout_checklist(
+    policy_name: str,
+    virtual_server: str = "",
+    logging_profile: str = "waf_detect_only",
+    deployment_scenario: str = "existing",
+    inspect_responses: bool = False,
+) -> str:
     target = virtual_server or "<virtual-server-name>"
+    scenario_text = {
+        "existing": "Existing Virtual Server",
+        "new": "New Virtual Server",
+        "unassigned": "Do not associate with Virtual Server",
+    }[deployment_scenario]
+    response_text = "Enabled" if inspect_responses else "Disabled"
     return f"""# {policy_name} WAF 적용 체크리스트
 
 ## 1. 정책 생성
 
 - Rapid Deployment Policy 기반으로 정책을 생성한다.
+- Deployment Scenario: `{scenario_text}`
 - Enforcement Mode는 최초 적용 시 Transparent로 시작한다.
 - Application Language는 UTF-8로 둔다.
+- Enforcement Readiness Period는 기본 7일로 둔다.
 - Signature Staging이 켜져 있는지 확인한다.
+- Apply Signatures to Responses: `{response_text}`
 
 ## 2. Virtual Server 연결
 
 - 대상 Virtual Server: `{target}`
+- 기존 Virtual Server를 사용할 경우 HTTP profile이 있어야 한다.
+- 기존 Virtual Server에 local traffic policy가 이미 연결되어 있으면 먼저 구조를 확인한다.
+- Virtual Server에 연결하지 않고 정책만 만들면 트래픽이 지나가기 전까지 학습이 시작되지 않는다.
 - Security 탭에서 Application Security Policy가 Enabled인지 확인한다.
 - 생성한 정책 `{policy_name}`이 연결되어 있는지 확인한다.
 
