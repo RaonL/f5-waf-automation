@@ -18,6 +18,31 @@ class ProfileTests(unittest.TestCase):
         self.assertTrue(policy["policy"]["apiProtection"]["enableJsonValidation"])
         self.assertTrue(policy["policy"]["blockingSettings"]["violations"][0]["block"])
 
+    def test_policy_includes_server_technologies_and_signature_exceptions(self):
+        policy = build_easy_policy(
+            "portal",
+            server_technologies=["Java", "MySQL"],
+            disabled_signature_ids=[200101552],
+        )
+
+        self.assertEqual(
+            policy["policy"]["server-technologies"],
+            [
+                {"serverTechnologyName": "Java"},
+                {"serverTechnologyName": "MySQL"},
+            ],
+        )
+        self.assertEqual(
+            policy["policy"]["signatures"],
+            [
+                {
+                    "signatureId": 200101552,
+                    "enabled": False,
+                    "performStaging": True,
+                }
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

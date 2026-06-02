@@ -25,11 +25,18 @@ class CliTests(unittest.TestCase):
                     "transparent",
                     "--output",
                     str(output),
+                    "--server-tech",
+                    "Java",
+                    "--disable-signature-id",
+                    "200101552",
                 ]
             )
 
             self.assertEqual(result, 0)
-            self.assertIn("easy-app", output.read_text(encoding="utf-8"))
+            text = output.read_text(encoding="utf-8")
+            self.assertIn("easy-app", text)
+            self.assertIn("Java", text)
+            self.assertIn("200101552", text)
 
 
 if __name__ == "__main__":

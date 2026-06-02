@@ -33,6 +33,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     quickstart.add_argument("--output", required=True, help="Output policy JSON file.")
     quickstart.add_argument(
+        "--server-tech",
+        action="append",
+        default=[],
+        help="Backend technology to tune attack signatures. Can be used multiple times, for example: --server-tech Java --server-tech MySQL",
+    )
+    quickstart.add_argument(
+        "--disable-signature-id",
+        action="append",
+        type=int,
+        default=[],
+        help="Disable a specific attack signature ID in the generated policy. Can be used multiple times.",
+    )
+    quickstart.add_argument(
         "--no-staging",
         action="store_true",
         help="Disable signature staging. Keep staging enabled for first rollout.",
@@ -74,6 +87,8 @@ def cmd_quickstart(args: argparse.Namespace) -> int:
         app_type=args.type,
         mode=args.mode,
         staging=not args.no_staging,
+        server_technologies=args.server_tech,
+        disabled_signature_ids=args.disable_signature_id,
     )
     require_valid_policy(policy)
     write_json(args.output, policy)

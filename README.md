@@ -25,6 +25,12 @@ python -m pip install -e .
 f5-waf quickstart --name my-web-app --type web --mode transparent --output out\my-web-app-policy.json
 ```
 
+서버 기술까지 지정해서 탐지용 정책 만들기:
+
+```powershell
+f5-waf quickstart --name my-web-app --type web --mode transparent --server-tech Java --server-tech MySQL --output out\my-web-app-policy.json
+```
+
 API 서비스용 WAF 정책 초안 만들기:
 
 ```powershell
@@ -57,10 +63,21 @@ f5-waf policy upload out\my-web-app-policy.json --apply
 처음부터 차단하지 말고 아래 순서로 진행하는 것을 권장합니다.
 
 1. `transparent` 모드로 정책 생성
-2. BIG-IP에 적용
-3. WAF 로그 확인
-4. 오탐을 줄이도록 정책 조정
-5. 충분히 확인한 뒤 `blocking` 모드 정책으로 전환
+2. 백엔드 기술을 알면 `--server-tech`로 지정
+3. BIG-IP에 적용
+4. WAF 로그와 Traffic Learning 제안 확인
+5. 오탐을 줄이도록 정책 조정
+6. 충분히 확인한 뒤 `blocking` 모드 정책으로 전환
+
+탐지 모드에서도 중요한 설정은 아래와 같습니다.
+
+| 설정 | 추천값 | 이유 |
+| --- | --- | --- |
+| Enforcement Mode | `transparent` | 처음에는 차단하지 않고 탐지/로그 중심으로 운영 |
+| Signature Staging | 켜짐 | 새 시그니처로 인한 오탐을 줄이기 위해 관찰 기간 확보 |
+| Alarm | 켜짐 | 위반 이벤트를 로그와 리포트에서 확인 |
+| Block | 꺼짐 | 탐지 모드에서는 사용자 요청을 막지 않음 |
+| Server Technologies | 애플리케이션에 맞게 지정 | Java, MySQL, IIS 같은 기술별 공격 시그니처를 더 정확히 적용 |
 
 차단 모드 정책 생성:
 
@@ -77,6 +94,18 @@ f5-waf quickstart --name my-web-app --type web --mode blocking --output out\my-w
 | `f5-waf policy upload` | 정책 업로드, 기본값은 dry-run |
 | `f5-waf logs parse` | WAF JSONL 로그를 CSV로 변환 |
 | `f5-waf asm convert` | 단순 ASM 정책 조각을 AWAF 정책 초안으로 변환 |
+
+`quickstart`에서 자주 쓰는 옵션:
+
+| 옵션 | 설명 |
+| --- | --- |
+| `--type web` | 일반 웹 애플리케이션 |
+| `--type api` | JSON API 중심 애플리케이션 |
+| `--mode transparent` | 탐지 모드 |
+| `--mode blocking` | 차단 모드 |
+| `--server-tech Java` | 서버 기술 지정. 여러 번 사용 가능 |
+| `--disable-signature-id 200101552` | 특정 공격 시그니처 비활성화. 검토 후 사용 |
+| `--no-staging` | 시그니처 staging 비활성화. 최초 적용에는 비추천 |
 
 ## 환경변수
 
