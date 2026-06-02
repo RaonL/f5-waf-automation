@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "f5-waf-automation-toolkit"
+version = "0.1.0"
+description = "Production-minded F5 BIG-IP AWAF/ASM automation toolkit with safe defaults."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "requests>=2.31.0",
+]
+
+[project.scripts]
+f5-waf = "f5_waf_toolkit.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

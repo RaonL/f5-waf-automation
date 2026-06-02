@@ -1,0 +1,25 @@
+{
+  "asmPolicy": {
+    "name": "legacy-customer-portal",
+    "enforcementMode": "transparent",
+    "blockingSettings": {
+      "violations": [
+        {
+          "name": "VIOL_HTTP_PROTOCOL_VIOLATION",
+          "alarm": true,
+          "block": false
+        },
+        {
+          "name": "VIOL_SQL_INJECTION",
+          "alarm": true,
+          "block": false
+        }
+      ]
+    }
+  },
+  "awafTarget": {
+    "name": "customer-portal-awaf",
+    "enforcementMode": "blocking",
+    "description": "Converted policy draft for review before import."
+  }
+}

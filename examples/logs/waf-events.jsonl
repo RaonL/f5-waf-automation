@@ -1,0 +1,2 @@
+{"timestamp":"2026-06-02T01:00:00Z","ip_client":"192.0.2.10","http_method":"GET","uri":"/login","violation_name":"VIOL_SQL_INJECTION","support_id":"123456789","policy_name":"baseline-awaf-policy","severity":"critical"}
+{"timestamp":"2026-06-02T01:01:00Z","clientIp":"198.51.100.23","method":"POST","request_uri":"/api/v1/user","violation":"VIOL_XSS","supportId":"987654321","policyName":"api-awaf-policy","severity_string":"high"}

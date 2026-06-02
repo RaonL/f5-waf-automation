@@ -1,0 +1,38 @@
+{
+  "policy": {
+    "name": "baseline-awaf-policy",
+    "applicationLanguage": "utf-8",
+    "enforcementMode": "blocking",
+    "template": {
+      "name": "POLICY_TEMPLATE_RAPID_DEPLOYMENT"
+    },
+    "blockingSettings": {
+      "violations": [
+        {
+          "name": "VIOL_HTTP_PROTOCOL_VIOLATION",
+          "alarm": true,
+          "block": true
+        },
+        {
+          "name": "VIOL_EVASION",
+          "alarm": true,
+          "block": true
+        },
+        {
+          "name": "VIOL_SQL_INJECTION",
+          "alarm": true,
+          "block": true
+        },
+        {
+          "name": "VIOL_XSS",
+          "alarm": true,
+          "block": true
+        }
+      ]
+    },
+    "signatureSettings": {
+      "signatureStaging": true
+    },
+    "description": "Baseline AWAF policy for lab validation. Tune before production use."
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "policy": {
+    "name": "api-awaf-policy",
+    "applicationLanguage": "utf-8",
+    "enforcementMode": "blocking",
+    "template": {
+      "name": "POLICY_TEMPLATE_API_SECURITY"
+    },
+    "apiProtection": {
+      "enableJsonValidation": true,
+      "enableXmlValidation": false,
+      "enforceContentType": true,
+      "validateParameters": true
+    },
+    "blockingSettings": {
+      "violations": [
+        {
+          "name": "VIOL_JSON_MALFORMED",
+          "alarm": true,
+          "block": true
+        },
+        {
+          "name": "VIOL_PARAMETER_VALUE_METACHAR",
+          "alarm": true,
+          "block": true
+        },
+        {
+          "name": "VIOL_OPEN_API_VIOLATION",
+          "alarm": true,
+          "block": true
+        }
+      ]
+    },
+    "signatureSettings": {
+      "signatureStaging": true
+    },
+    "description": "API-focused AWAF policy draft for REST and JSON workloads."
+  }
+}
