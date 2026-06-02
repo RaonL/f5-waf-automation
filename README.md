@@ -98,13 +98,14 @@ $env:F5_HOST="https://192.168.137.125"
 1. `quickstart`로 DVWA용 Rapid Deployment 정책 JSON 생성
 2. `policy validate`로 정책 검증
 3. BIG-IP에 정책 업로드
-4. BIG-IP GUI에서 DVWA Virtual Server에 Application Security Policy 연결
-5. Logging Profile 연결
-6. DVWA 정상 접속 테스트
-7. SQL Injection 같은 테스트 요청 발생
-8. Security Event Log와 Traffic Learning 확인
-9. 오탐 튜닝 후 Apply Policy
-10. 충분히 관찰한 뒤 Blocking 전환 검토
+4. Logging Profile 생성
+5. BIG-IP GUI에서 DVWA Virtual Server에 Application Security Policy 연결
+6. Logging Profile 연결 확인
+7. DVWA 정상 접속 테스트
+8. SQL Injection 같은 테스트 요청 발생
+9. Security Event Log와 Traffic Learning 확인
+10. 오탐 튜닝 후 Apply Policy
+11. 충분히 관찰한 뒤 Blocking 전환 검토
 
 ## 탐지 모드 기본값
 

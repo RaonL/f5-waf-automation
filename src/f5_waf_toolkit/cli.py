@@ -7,6 +7,7 @@ import sys
 from .client import F5ApiError, F5Client
 from .config import F5Config
 from .logs import parse_jsonl_to_csv
+from .logging_profiles import build_application_security_logging_profile
 from .policies import (
     PolicyValidationError,
     convert_asm_to_awaf,
@@ -174,6 +175,32 @@ def build_parser() -> argparse.ArgumentParser:
     parse.add_argument("output_file")
     parse.set_defaults(func=cmd_logs_parse)
 
+    logging = subcommands.add_parser("logging")
+    logging_commands = logging.add_subparsers(dest="logging_command", required=True)
+    logging_profile = logging_commands.add_parser("profile")
+    logging_profile_commands = logging_profile.add_subparsers(dest="logging_profile_command", required=True)
+    create_logging_profile = logging_profile_commands.add_parser("create")
+    create_logging_profile.add_argument("--name", default=DVWA_LAB["logging_profile"], help="Logging profile name.")
+    create_logging_profile.add_argument(
+        "--description",
+        default="Illegal requests, and requests",
+        help="Logging profile description.",
+    )
+    create_logging_profile.add_argument(
+        "--request-type",
+        choices=["blocked", "illegal", "illegal-including-staged", "all"],
+        default="illegal-including-staged",
+        help="Application Security request type filter.",
+    )
+    create_logging_profile.add_argument(
+        "--response-logging",
+        choices=["none", "illegal", "all"],
+        default="none",
+        help="Whether to log responses.",
+    )
+    create_logging_profile.add_argument("--apply", action="store_true", help="Create the profile on BIG-IP.")
+    create_logging_profile.set_defaults(func=cmd_logging_profile_create)
+
     return parser
 
 
@@ -301,6 +328,24 @@ def cmd_asm_convert(args: argparse.Namespace) -> int:
 def cmd_logs_parse(args: argparse.Namespace) -> int:
     count = parse_jsonl_to_csv(args.input_file, args.output_file)
     print(f"Wrote {count} normalized WAF log rows: {args.output_file}")
+    return 0
+
+
+def cmd_logging_profile_create(args: argparse.Namespace) -> int:
+    profile = build_application_security_logging_profile(
+        name=args.name,
+        description=args.description,
+        request_type=args.request_type,
+        response_logging=args.response_logging,
+    )
+    if not args.apply:
+        print(json.dumps({"dry_run": True, "profile": args.name, "payload": profile}, indent=2))
+        print("No changes sent. Re-run with --apply to create the logging profile.")
+        return 0
+
+    config = F5Config.from_env()
+    result = F5Client(config).create_security_log_profile(profile)
+    print(json.dumps(result, indent=2))
     return 0
 
 

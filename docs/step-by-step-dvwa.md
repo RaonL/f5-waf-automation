@@ -115,7 +115,42 @@ Security > Application Security > Security Policies > Policy List
 dvwa-rapid-policy-v2
 ```
 
-## Step 7. dvwa_vs에 새 정책 연결
+## Step 7. Logging Profile 생성
+
+네가 GUI에서 만든 것과 같은 목적의 Application Security Logging Profile을 생성합니다.
+
+```powershell
+f5-waf logging profile create --name waf_detect_only
+```
+
+dry-run payload를 확인한 뒤 실제 생성합니다.
+
+```powershell
+f5-waf logging profile create --name waf_detect_only --apply
+```
+
+기본 request type은 아래 GUI 항목에 해당합니다.
+
+```text
+Illegal requests, and requests that include staged attack signature or staged threat campaigns or Potential False Positive signature
+```
+
+생성 후 GUI에서 확인합니다.
+
+```text
+Security > Event Logs > Logging Profiles
+```
+
+확인할 값:
+
+```text
+Profile Name: waf_detect_only
+Application Security: Enabled
+Storage Destination: Local Storage
+Request Type: Illegal requests, and requests that include staged attack signature...
+```
+
+## Step 8. dvwa_vs에 새 정책 연결
 
 BIG-IP GUI에서 이동합니다.
 
@@ -135,7 +170,7 @@ Local Traffic > Virtual Servers > Virtual Server List > dvwa_vs > Security
 
 주의: `Application Security Policy`를 `Disabled`로 바꾸는 것이 아닙니다. 기존 `waf_pol`을 새 `dvwa-rapid-policy-v2`로 교체하는 것입니다.
 
-## Step 8. Logging Profile 확인
+## Step 9. Logging Profile 연결 확인
 
 일본 벤더 교육자료 기준으로 staging 로그를 보려면 staged attack signatures가 Event Logs에 보여야 합니다.
 
@@ -154,7 +189,7 @@ Requests that include staged attack signatures
 Potential False Positive signatures
 ```
 
-## Step 9. Signature Staging 확인
+## Step 10. Signature Staging 확인
 
 ```text
 Security > Application Security > Policy Building > Learning and Blocking Settings
@@ -178,7 +213,7 @@ Security > Application Security > Security Policies > Policies List > dvwa-rapid
 Status: Staging
 ```
 
-## Step 10. 정상 접속 테스트
+## Step 11. 정상 접속 테스트
 
 브라우저에서 DVWA에 접속합니다.
 
@@ -190,7 +225,7 @@ DVWA 로그인 후 몇 개 메뉴를 클릭합니다.
 
 탐지 모드이므로 정상 요청이 차단되면 안 됩니다.
 
-## Step 11. SQL Injection 테스트
+## Step 12. SQL Injection 테스트
 
 DVWA에서 Security Level을 `Low`로 설정합니다.
 
@@ -206,7 +241,7 @@ SQL Injection 메뉴에서 아래 값을 입력합니다.
 
 탐지 모드에서는 요청이 차단되지 않을 수 있습니다. 대신 로그와 학습 제안이 남아야 합니다.
 
-## Step 12. Event Logs 확인
+## Step 13. Event Logs 확인
 
 ```text
 Security > Event Logs > Application > Requests
@@ -221,7 +256,7 @@ Support ID
 Policy 이름: dvwa-rapid-policy-v2
 ```
 
-## Step 13. Traffic Learning 확인
+## Step 14. Traffic Learning 확인
 
 ```text
 Security > Application Security > Policy Building > Traffic Learning
@@ -236,7 +271,7 @@ Related Suggestions
 
 명확한 공격 요청은 수락하지 않습니다. 정상 요청 오탐만 검토합니다.
 
-## Step 14. Apply Policy
+## Step 15. Apply Policy
 
 정책 변경이나 학습 제안 반영 후에는 반드시 누릅니다.
 
@@ -244,7 +279,7 @@ Related Suggestions
 Apply Policy
 ```
 
-## Step 15. Staging 해제
+## Step 16. Staging 해제
 
 탐지 로그와 오탐 검토가 끝나면 staging을 해제합니다.
 
@@ -261,7 +296,7 @@ Apply Policy
 
 다시 SQL Injection 테스트를 하고 Event Logs에서 `Alarm Learn` 상태를 확인합니다.
 
-## Step 16. Blocking 모드 전환
+## Step 17. Blocking 모드 전환
 
 ```text
 Security > Application Security > Security Policies > Policies List > dvwa-rapid-policy-v2 > General Settings
@@ -275,7 +310,7 @@ Save
 Apply Policy
 ```
 
-## Step 17. 차단 확인
+## Step 18. 차단 확인
 
 다시 SQL Injection 테스트를 합니다.
 
@@ -292,7 +327,7 @@ Support ID 확인
 매칭된 attack signature 확인
 ```
 
-## Step 18. 되돌리기
+## Step 19. 되돌리기
 
 문제가 생기면 `dvwa_vs`의 Policy를 다시 기존 정책으로 바꿉니다.
 

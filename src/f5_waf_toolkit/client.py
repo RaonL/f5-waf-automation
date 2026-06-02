@@ -41,3 +41,29 @@ class F5Client:
         if not response.content:
             return {"status": response.status_code}
         return response.json()
+
+    def create_security_log_profile(self, profile: dict[str, Any]) -> dict[str, Any]:
+        try:
+            import requests
+        except ImportError as exc:
+            raise RuntimeError("Install project dependencies before using --apply: python -m pip install -e .") from exc
+
+        self.config.require_credentials()
+        url = f"{self.config.host}/mgmt/tm/security/log/profile"
+        response = requests.post(
+            url,
+            auth=(self.config.username, self.config.password),
+            json=profile,
+            timeout=self.config.timeout,
+            verify=self.config.verify_tls,
+        )
+        if response.status_code >= 400:
+            body = response.text.strip()
+            raise F5ApiError(
+                response.status_code,
+                f"{response.status_code} {response.reason} for url: {url}",
+                body,
+            )
+        if not response.content:
+            return {"status": response.status_code}
+        return response.json()

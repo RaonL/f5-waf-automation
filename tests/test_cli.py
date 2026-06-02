@@ -112,6 +112,25 @@ class CliTests(unittest.TestCase):
             self.assertIn("BIG-IP response:", output)
             self.assertIn("bad policy", output)
 
+    def test_logging_profile_create_dry_run(self):
+        result = main(["logging", "profile", "create", "--name", "waf_detect_only"])
+
+        self.assertEqual(result, 0)
+
+    def test_logging_profile_create_apply_posts_payload(self):
+        with patch("f5_waf_toolkit.config.F5Config.require_credentials"), patch.dict(
+            "os.environ",
+            {"F5_HOST": "https://bigip.example.com", "F5_USERNAME": "admin", "F5_PASSWORD": "secret"},
+        ), patch("f5_waf_toolkit.cli.F5Client.create_security_log_profile") as create_profile:
+            create_profile.return_value = {"name": "waf_detect_only"}
+
+            result = main(["logging", "profile", "create", "--name", "waf_detect_only", "--apply"])
+
+        self.assertEqual(result, 0)
+        payload = create_profile.call_args.args[0]
+        self.assertEqual(payload["name"], "waf_detect_only")
+        self.assertEqual(payload["application"][0]["filter"][0]["values"], ["illegal-including-staged-signatures"])
+
 
 if __name__ == "__main__":
     unittest.main()
